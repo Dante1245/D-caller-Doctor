@@ -102,14 +102,22 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const hostname = req.hostname === 'localhost' ? req.get('host') : req.hostname;
+    const domains = process.env.REPLIT_DOMAINS!.split(",");
+    const matchingDomain = domains.find(domain => hostname.includes(domain)) || domains[0];
+    
+    passport.authenticate(`replitauth:${matchingDomain}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const hostname = req.hostname === 'localhost' ? req.get('host') : req.hostname;
+    const domains = process.env.REPLIT_DOMAINS!.split(",");
+    const matchingDomain = domains.find(domain => hostname.includes(domain)) || domains[0];
+    
+    passport.authenticate(`replitauth:${matchingDomain}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
