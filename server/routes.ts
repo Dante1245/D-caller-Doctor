@@ -357,6 +357,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Service status endpoint for testing external integrations
+  app.get('/api/status', async (req, res) => {
+    try {
+      const status = {
+        platform: 'VoiceConnect Pro',
+        version: '1.0.0',
+        database: 'connected',
+        services: {
+          elevenlabs: { status: 'checking...', voices: 0 },
+          twilio: { status: 'checking...', account: null }
+        }
+      };
+
+      // Test ElevenLabs
+      try {
+        const voicesResponse = await fetch('https://api.elevenlabs.io/v1/voices', {
+          headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY! }
+        });
+        if (voicesResponse.ok) {
+          const data = await voicesResponse.json();
+          status.services.elevenlabs = {
+            status: 'connected',
+            voices: data.voices?.length || 0
+          };
+        } else {
+          status.services.elevenlabs.status = 'error';
+        }
+      } catch (error) {
+        status.services.elevenlabs.status = 'error';
+      }
+
+      // Test Twilio
+      try {
+        const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}.json`, {
+          headers: {
+            'Authorization': `Basic ${Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')}`
+          }
+        });
+        if (twilioResponse.ok) {
+          const data = await twilioResponse.json();
+          status.services.twilio = {
+            status: 'connected',
+            account: data.friendly_name
+          };
+        } else {
+          status.services.twilio.status = 'error';
+        }
+      } catch (error) {
+        status.services.twilio.status = 'error';
+      }
+
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: 'Status check failed' });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Setup Socket.IO
