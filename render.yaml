@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: voiceconnect-pro
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: voiceconnect-db
+          property: connectionString
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: REPL_ID
+        generateValue: true
+      - key: ISSUER_URL
+        value: https://replit.com/oidc
+      - key: REPLIT_DOMAINS
+        value: render.com
+
+databases:
+  - name: voiceconnect-db
+    databaseName: voiceconnect
+    user: voiceconnect_user
+    plan: starter
