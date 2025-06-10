@@ -48,7 +48,7 @@ export function CallInterface() {
   const queryClient = useQueryClient();
 
   // Fetch available voices
-  const { data: voices } = useQuery({
+  const { data: voices } = useQuery<{ voices: Voice[] }>({
     queryKey: ['/api/voices'],
     enabled: true
   });
@@ -56,23 +56,29 @@ export function CallInterface() {
   // Call mutations
   const webrtcCallMutation = useMutation({
     mutationFn: async (data: { recipientId: string; voiceId?: string }) => {
-      return apiRequest('/api/calls', {
+      const response = await fetch('/api/calls', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           recipientId: data.recipientId,
           type: 'webrtc',
           voiceId: data.voiceId
         })
       });
+      if (!response.ok) throw new Error('Failed to initiate call');
+      return response.json();
     }
   });
 
   const twilioCallMutation = useMutation({
     mutationFn: async (data: { to: string; voiceId?: string }) => {
-      return apiRequest('/api/calls/twilio', {
+      const response = await fetch('/api/calls/twilio', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
+      if (!response.ok) throw new Error('Failed to initiate Twilio call');
+      return response.json();
     }
   });
 
@@ -190,7 +196,7 @@ export function CallInterface() {
         voiceId: selectedVoice
       });
       
-      await webrtcManager.initializeCall("demo-user", callData.call.id);
+      await webrtcManager.initializeCall("demo-user", callData.id);
       
       toast({
         title: "Call Initiated",
@@ -458,7 +464,7 @@ export function CallInterface() {
                     <SelectValue placeholder="Select voice" />
                   </SelectTrigger>
                   <SelectContent>
-                    {voices?.voices?.map((voice: Voice) => (
+                    {voices && voices.voices && voices.voices.map((voice: Voice) => (
                       <SelectItem key={voice.voice_id} value={voice.voice_id}>
                         {voice.name} ({voice.category})
                       </SelectItem>
